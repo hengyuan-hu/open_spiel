@@ -179,6 +179,10 @@ set(GAME_SOURCES
   ultimate_tic_tac_toe.cc
   y.cc
   y.h
+  yorktown.cc
+  yorktown.h
+  yorktown/yorktown_board.cc
+  yorktown/yorktown_board.h
 )
 
 if (${OPEN_SPIEL_BUILD_WITH_HANABI})
@@ -613,3 +617,7 @@ add_executable(y_test y_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
 add_test(y_test y_test)
 
+add_executable(yorktown_test yorktown_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>
+               $<TARGET_OBJECTS:algorithms>)
+add_test(yorktown_test yorktown_test)
