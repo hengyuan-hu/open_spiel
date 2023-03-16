@@ -95,7 +95,7 @@ inline Square IndexToSquare(uint8_t index) {
                 static_cast<int8_t>(index / BoardSize())};
 }
 
-// This method encodes each possible move to a specific number 
+// This method encodes each possible move to a specific number
 int EncodeMove(const Square& from_square, int destination_index, int board_size,
                int num_actions_destinations);
 
@@ -146,17 +146,17 @@ class YorktownState : public State {
   // This is identical to the StraDos3 string of the current board
   std::string InformationStateString(Player player) const override;
 
-   // The InformationState and Observationtensors return the current State in form of 
-  // planes 
+   // The InformationState and Observationtensors return the current State in form of
+  // planes
   void InformationStateTensor(Player player,
                               absl::Span<float> values) const override;
- 
+
   // A method to clone the current state
   std::unique_ptr<State> Clone() const override;
 
-  // A method undoing the given action 
+  // A method undoing the given action
   void UndoAction(Player player, Action action) override;
-  
+
   // Current board.
   StandardYorktownBoard& Board() { return current_board_; }
   const StandardYorktownBoard& Board() const { return current_board_; }
@@ -181,7 +181,7 @@ class YorktownState : public State {
   void DoApplyAction(Action action_id) override;
 
  private:
-    
+
   // Calculates legal actions and caches them. This is separate from
   // LegalActions() as there are a number of other methods that need the value
   // of LegalActions. This is a separate method as it's called from
@@ -201,7 +201,7 @@ class YorktownState : public State {
   StandardYorktownBoard start_board_;
   // We store the current board position as an optimization.
   StandardYorktownBoard current_board_;
-  
+
   mutable absl::optional<std::vector<Action>> cached_legal_actions_;
 };
 
@@ -211,13 +211,13 @@ class YorktownGame : public Game {
 
   // see above (36 possible moves)
   int NumDistinctActions() const override {return yorktown::kNumDistinctActions;}
-  
+
   // pointer to the initial state with a given position in form of an strados string
   std::unique_ptr<State> NewInitialState(
       const std::string& strados3) const override {
     return absl::make_unique<YorktownState>(shared_from_this(), strados3);
   }
-  
+
   // pointer to the initial state based on the defined default position
   std::unique_ptr<State> NewInitialState() const override {
     return absl::make_unique<YorktownState>(shared_from_this(), kInitPos);
@@ -226,14 +226,14 @@ class YorktownGame : public Game {
   // getter for the constants
   int NumPlayers() const override { return yorktown::NumPlayers(); }
   double MinUtility() const override { return LossUtility(); }
-  double UtilitySum() const override { return DrawUtility(); }
+  absl::optional<double> UtilitySum() const override { return DrawUtility(); }
   double MaxUtility() const override { return WinUtility(); }
-  
+
   std::vector<int> InformationStateTensorShape() const override {
     return yorktown::InformationStateTensorShape();
   }
-  
-  
+
+
 
   int MaxGameLength() const override;
 
