@@ -274,9 +274,15 @@ PYBIND11_MODULE(pyspiel, m) {
            (std::vector<open_spiel::Action>(State::*)(void) const) &
                State::LegalActions)
       .def("legal_actions_mask",
-           (std::vector<int>(State::*)(int) const) & State::LegalActionsMask)
+          [](const State& state, const Player player) -> py::array_t<int> {
+            const std::vector<int> tensor = state.LegalActionsMask(player);
+            return py::array_t<int>({tensor.size()}, {}, tensor.data());
+          })
       .def("legal_actions_mask",
-           (std::vector<int>(State::*)(void) const) & State::LegalActionsMask)
+          [](const State& state) -> py::array_t<int> {
+            const std::vector<int> tensor = state.LegalActionsMask();
+            return py::array_t<int>({tensor.size()}, {}, tensor.data());
+          })
       .def("action_to_string", (std::string(State::*)(Player, Action) const) &
                                    State::ActionToString)
       .def("action_to_string",
@@ -308,18 +314,33 @@ PYBIND11_MODULE(pyspiel, m) {
       .def("information_state_string",
            (std::string(State::*)() const) & State::InformationStateString)
       .def("information_state_tensor",
-           (std::vector<float>(State::*)(int) const) &
-               State::InformationStateTensor)
-      .def("information_state_tensor", (std::vector<float>(State::*)() const) &
-                                           State::InformationStateTensor)
+          [](const State& state, const Player player) -> py::array_t<float> {
+            const std::vector<float> tensor = state.InformationStateTensor(player);
+            const std::vector<int> shape = state.InformationStateTensorShape();
+            return py::array_t<float>(shape, {}, tensor.data());
+          })
+      .def("information_state_tensor",
+          [](const State& state) -> py::array_t<float> {
+            const std::vector<float> tensor = state.InformationStateTensor();
+            const std::vector<int> shape = state.InformationStateTensorShape();
+            return py::array_t<float>(shape, {}, tensor.data());
+          })
       .def("observation_string",
            (std::string(State::*)(int) const) & State::ObservationString)
       .def("observation_string",
            (std::string(State::*)() const) & State::ObservationString)
       .def("observation_tensor",
-           (std::vector<float>(State::*)(int) const) & State::ObservationTensor)
+          [](const State& state, const Player player) -> py::array_t<float> {
+            const std::vector<float> tensor = state.ObservationTensor(player);
+            const std::vector<int> shape = state.ObservationTensorShape();
+            return py::array_t<float>(shape, {}, tensor.data());
+          })
       .def("observation_tensor",
-           (std::vector<float>(State::*)() const) & State::ObservationTensor)
+          [](const State& state) -> py::array_t<float> {
+            const std::vector<float> tensor = state.ObservationTensor();
+            const std::vector<int> shape = state.ObservationTensorShape();
+            return py::array_t<float>(shape, {}, tensor.data());
+          })
       .def("clone", &State::Clone)
       .def("child", &State::Child)
       .def("undo_action", &State::UndoAction)

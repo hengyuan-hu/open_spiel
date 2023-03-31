@@ -56,11 +56,11 @@ struct GameType {
 
   // Is the game one-player-at-a-time or do players act simultaneously?
   enum class Dynamics {
-    kSimultaneous,           // In some or all nodes every player acts.
-    kSequential,             // Turn-based games.
+    kSimultaneous,  // In some or all nodes every player acts.
+    kSequential,    // Turn-based games.
     // Mean field game. In particular, this adds mean field nodes. Support for
     // mean field games is experimental. See details in games/mfg/README.md.
-    kMeanField,              // Is a Mean Field Game
+    kMeanField,  // Is a Mean Field Game
   };
   Dynamics dynamics;
 
@@ -143,12 +143,11 @@ struct GameType {
   bool provides_factored_observation_string = false;
 
   bool provides_information_state() const {
-    return provides_information_state_tensor
-        || provides_information_state_string;
+    return provides_information_state_tensor ||
+           provides_information_state_string;
   }
   bool provides_observation() const {
-    return provides_observation_tensor
-        || provides_observation_string;
+    return provides_observation_tensor || provides_observation_string;
   }
 };
 
@@ -512,6 +511,7 @@ class State {
   }
   virtual void InformationStateTensor(Player player,
                                       std::vector<float>* values) const;
+  std::vector<int> InformationStateTensorShape() const;
 
   // We have functions for observations which are parallel to those for
   // information states. An observation should have the following properties:
@@ -558,6 +558,7 @@ class State {
     return ObservationTensor(CurrentPlayer());
   }
   void ObservationTensor(Player player, std::vector<float>* values) const;
+  std::vector<int> ObservationTensorShape() const;
 
   // Return a copy of this state.
   virtual std::unique_ptr<State> Clone() const = 0;
@@ -590,7 +591,6 @@ class State {
 
   // A helper version of ApplyActions that first does legality checks.
   void ApplyActionsWithLegalityChecks(const std::vector<Action>& actions);
-
 
   // The size of the action space. See `Game` for a full description.
   int NumDistinctActions() const { return num_distinct_actions_; }
@@ -1162,8 +1162,7 @@ std::string ActionsToString(const State& state,
 // A utility to broadcast an error message with game and state info.
 // It is a wrapper around SpielFatalError and meant to facilitate debugging.
 void SpielFatalErrorWithStateInfo(const std::string& error_msg,
-                                  const Game& game,
-                                  const State& state);
+                                  const Game& game, const State& state);
 
 }  // namespace open_spiel
 

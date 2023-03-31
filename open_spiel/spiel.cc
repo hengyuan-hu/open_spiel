@@ -46,8 +46,7 @@ constexpr const char* kSerializeGameRNGStateSectionHeader = "[GameRNGState]";
 constexpr const char* kSerializeStateSectionHeader = "[State]";
 
 // Returns the available parameter keys, to be used as a utility function.
-std::string ListValidParameters(
-    const GameParameters& param_spec) {
+std::string ListValidParameters(const GameParameters& param_spec) {
   std::vector<std::string> available_keys;
   available_keys.reserve(param_spec.size());
   for (const auto& item : param_spec) {
@@ -335,10 +334,10 @@ void State::ApplyActionWithLegalityCheck(Action action_id) {
   std::vector<Action> legal_actions = LegalActions();
   if (absl::c_find(legal_actions, action_id) == legal_actions.end()) {
     Player cur_player = CurrentPlayer();
-    SpielFatalError(
-        absl::StrCat("Current player ", cur_player, " calling ApplyAction ",
-                     "with illegal action (", action_id, "): ",
-                     ActionToString(cur_player, action_id)));
+    SpielFatalError(absl::StrCat("Current player ", cur_player,
+                                 " calling ApplyAction ",
+                                 "with illegal action (", action_id,
+                                 "): ", ActionToString(cur_player, action_id)));
   }
   ApplyAction(action_id);
 }
@@ -359,10 +358,9 @@ void State::ApplyActionsWithLegalityChecks(const std::vector<Action>& actions) {
     std::vector<Action> legal_actions = LegalActions(player);
     if (!legal_actions.empty() &&
         absl::c_find(legal_actions, actions[player]) == legal_actions.end()) {
-      SpielFatalError(
-          absl::StrCat("Player ", player, " calling ApplyAction ",
-                       "with illegal action (", actions[player], "): ",
-                       ActionToString(player, actions[player])));
+      SpielFatalError(absl::StrCat(
+          "Player ", player, " calling ApplyAction ", "with illegal action (",
+          actions[player], "): ", ActionToString(player, actions[player])));
     }
   }
   ApplyActions(actions);
@@ -397,8 +395,7 @@ std::unique_ptr<State> Game::DeserializeState(const std::string& str) const {
   //  and deserialization for the state.
   SPIEL_CHECK_NE(game_type_.chance_mode,
                  GameType::ChanceMode::kSampledStochastic);
-  SPIEL_CHECK_NE(game_type_.dynamics,
-                 GameType::Dynamics::kMeanField);
+  SPIEL_CHECK_NE(game_type_.dynamics, GameType::Dynamics::kMeanField);
 
   std::unique_ptr<State> state = NewInitialState();
   if (str.length() == 0) {
@@ -770,6 +767,10 @@ void State::ObservationTensor(Player player, std::vector<float>* values) const {
   ObservationTensor(player, absl::MakeSpan(*values));
 }
 
+std::vector<int> State::ObservationTensorShape() const {
+  return game_->ObservationTensorShape();
+}
+
 std::vector<float> State::InformationStateTensor(Player player) const {
   // We add this player check, to prevent errors if the game implementation
   // lacks that check (in particular as this function is the one used in
@@ -788,6 +789,10 @@ void State::InformationStateTensor(Player player,
   // Retained for backwards compatibility.
   values->resize(game_->InformationStateTensorSize());
   InformationStateTensor(player, absl::MakeSpan(*values));
+}
+
+std::vector<int> State::InformationStateTensorShape() const {
+  return game_->InformationStateTensorShape();
 }
 
 bool State::PlayerAction::operator==(const PlayerAction& other) const {
@@ -824,8 +829,7 @@ std::string ActionsToString(const State& state,
 }
 
 void SpielFatalErrorWithStateInfo(const std::string& error_msg,
-                                  const Game& game,
-                                  const State& state) {
+                                  const Game& game, const State& state) {
   // A fatal error wrapper designed to return useful debugging information.
   const std::string& info = SerializeGameAndState(game, state);
   SpielFatalError(absl::StrCat(error_msg, "Serialized state:\n", info));
