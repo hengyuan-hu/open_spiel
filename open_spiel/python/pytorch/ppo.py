@@ -192,7 +192,7 @@ class PPO(nn.Module):
   ):
     super().__init__()
 
-    self.input_shape = input_shape
+    self.input_shape = (np.array(input_shape).prod(),)
     self.num_actions = num_actions
     self.num_players = num_players
     self.player_id = player_id
@@ -232,8 +232,7 @@ class PPO(nn.Module):
     self.legal_actions_mask = torch.zeros(
         (self.steps_per_batch, self.num_envs, self.num_actions),
         dtype=torch.bool).to(device)
-    self.obs = torch.zeros((self.steps_per_batch, self.num_envs) +
-                           self.input_shape).to(device)
+    self.obs = torch.zeros((self.steps_per_batch, self.num_envs, *self.input_shape)).to(device)
     self.actions = torch.zeros((self.steps_per_batch, self.num_envs)).to(device)
     self.logprobs = torch.zeros(
         (self.steps_per_batch, self.num_envs)).to(device)
