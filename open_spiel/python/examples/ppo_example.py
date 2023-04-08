@@ -172,7 +172,8 @@ def main(_):
   torch.backends.cudnn.deterministic = FLAGS.torch_deterministic
 
   device = torch.device(
-      "cuda" if torch.cuda.is_available() and FLAGS.cuda else "cpu")
+      "cuda" if torch.cuda.is_available() and FLAGS.cuda
+      else "cpu")
   logging.info("Using device: %s", str(device))
 
   if FLAGS.game_name == "atari":
@@ -189,14 +190,19 @@ def main(_):
     agent_fn = PPOAgent
 
   game = envs.envs[0]._game  # pylint: disable=protected-access
-  info_state_shape = game.observation_tensor_shape()
+  num_players = game.num_players()
+  info_state_shape = game.information_state_tensor_shape()
+  print("INFORMATION TENSOR SHAPE: ", info_state_shape)
+
+  assert num_players == 1 or (num_players == 2 and game.get_type().utility == pyspiel.GameType.Utility.ZERO_SUM)
+  assert envs.envs[0].is_turn_based
+  assert game.get_type().reward_model == pyspiel.GameType.RewardModel.TERMINAL
 
   num_updates = FLAGS.total_timesteps // batch_size
   agent = PPO(
       input_shape=info_state_shape,
       num_actions=game.num_distinct_actions(),
       num_players=game.num_players(),
-      player_id=0,
       num_envs=FLAGS.num_envs,
       steps_per_batch=FLAGS.num_steps,
       num_minibatches=FLAGS.num_minibatches,
@@ -215,53 +221,45 @@ def main(_):
       device=device,
       writer=writer,
       agent_fn=agent_fn,
-  )
+    )
 
   n_reward_window = 50
   recent_rewards = collections.deque(maxlen=n_reward_window)
-  time_step = envs.reset()
+  time_steps = envs.reset()
   for update in range(num_updates):
     for _ in range(FLAGS.num_steps):
-      agent_output = agent.step(time_step)
-      time_step, reward, done, unreset_time_steps = envs.step(
-          agent_output, reset_if_done=True)
+      # Current player id in each of the envs
+      acting_players = [ts.observations["current_player"] for ts in time_steps]
+      # Output of current player in each of the envs
+      agent_outputs = agent.step(time_steps) 
 
-      if FLAGS.game_name == "atari":
-        # Get around the fact that
-        # stable_baselines3.common.atari_wrappers.EpisodicLifeEnv will modify
-        # rewards at the LIFE and not GAME level by only counting
-        # rewards of finished episodes
-        for ts in unreset_time_steps:
-          info = ts.observations.get("info")
-          if info and "episode" in info:
-            real_reward = info["episode"]["r"]
-            writer.add_scalar("charts/player_0_training_returns", real_reward,
-                              agent.total_steps_done)
-            recent_rewards.append(real_reward)
-      else:
-        for ts in unreset_time_steps:
-          if ts.last():
-            real_reward = ts.rewards[0]
-            writer.add_scalar("charts/player_0_training_returns", real_reward,
-                              agent.total_steps_done)
-            recent_rewards.append(real_reward)
+      # Advance all envs
+      time_steps, rewards, dones, unreset_time_steps = envs.step(
+          agent_outputs, reset_if_done=True)
 
-      agent.post_step(reward, done)
+      for ts in unreset_time_steps:
+        if ts.last():
+          real_reward = ts.rewards[0]
+          writer.add_scalar("charts/player_0_training_returns", real_reward,
+                            agent.total_steps_done)
+          recent_rewards.append(real_reward)
+
+      agent.post_step(
+        [reward[0] for reward in rewards],
+        dones)
 
     if FLAGS.anneal_lr:
       agent.anneal_learning_rate(update, num_updates)
-
-    agent.learn(time_step)
+    agent.learn(time_steps)
 
     if update % FLAGS.eval_every == 0:
       logging.info("-" * 80)
-      logging.info("Step %s", agent.total_steps_done)
+      logging.info("Step %d", agent.total_steps_done)
       logging.info("Summary of past %i rewards\n %s",
                    n_reward_window,
                    pd.Series(recent_rewards).describe())
 
   writer.close()
-  logging.info("All done. Have a pleasant day :)")
 
 
 if __name__ == "__main__":

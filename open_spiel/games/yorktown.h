@@ -20,18 +20,16 @@
 #include <string>
 #include <vector>
 
+#include "open_spiel/abseil-cpp/absl/algorithm/container.h"
+#include "open_spiel/abseil-cpp/absl/container/flat_hash_map.h"
+#include "open_spiel/games/yorktown/yorktown_board.h"
 #include "open_spiel/spiel.h"
 #include "open_spiel/spiel_utils.h"
-#include "open_spiel/abseil-cpp/absl/container/flat_hash_map.h"
-#include "open_spiel/abseil-cpp/absl/algorithm/container.h"
-#include "open_spiel/games/yorktown/yorktown_board.h"
-
 
 namespace open_spiel {
 namespace yorktown {
 
 using StandardYorktownBoard = YorktownBoard<10>;
-
 
 // Constants.
 inline constexpr int NumPlayers() { return 2; }
@@ -42,17 +40,19 @@ inline constexpr int BoardSize() { return 10; }
 
 // 9 moves possible in 4 directions = 36 possible destinations
 inline constexpr int kNumActionDestinations = 36;
-//NumActionDestinations * possible Fields (for simplicity 100)
+// NumActionDestinations * possible Fields (for simplicity 100)
 inline constexpr int kNumDistinctActions = 3600;
 
 // A possible starting position which is used if no other position is specified
-inline constexpr char* kInitPos = "FEBMBEFEEFBGIBHIBEDBGJDDDHCGJGDHDLIFKDDHAA__AA__AAAA__AA__AASTQQNSQPTSUPWPVRPXPURNQONNQSNVPTNQRRTYUP r 0";
+inline constexpr char* kInitPos =
+    "FEBMBEFEEFBGIBHIBEDBGJDDDHCGJGDHDLIFKDDHAA__AA__AAAA__AA__"
+    "AASTQQNSQPTSUPWPVRPXPURNQONNQSNVPTNQRRTYUP r 0";
 
 // The shape of the InformationStateTensor
 inline const std::vector<int>& InformationStateTensorShape() {
   static std::vector<int> shape{
-      28 /* piece types (12) * colours + empty field + lakes + unknown* colors*/ +
-          1 /* side to move */ ,
+      28 /* piece types (12) * colours + empty field + lakes + unknown* colors*/
+          + 1 /* side to move */,
       BoardSize(), BoardSize()};
   return shape;
 }
@@ -102,13 +102,14 @@ int EncodeMove(const Square& from_square, int destination_index, int board_size,
 // This method casts the given move to an action
 Action MoveToAction(const Move& move);
 
-// This method takes an action, returning the starting sqaure as well as the destination
-// index. With the methods from chess_common it is possible to calculate the offset
-// from the destinationindex
+// This method takes an action, returning the starting sqaure as well as the
+// destination index. With the methods from chess_common it is possible to
+// calculate the offset from the destinationindex
 std::pair<Square, int> ActionToDestination(int action, int board_size,
                                            int num_actions_destinations);
 
-// This method casts a given action to a move which can than eb played on the board
+// This method casts a given action to a move which can than eb played on the
+// board
 Move ActionToMove(const Action& action, const StandardYorktownBoard& board);
 
 class YorktownState : public State {
@@ -146,10 +147,19 @@ class YorktownState : public State {
   // This is identical to the StraDos3 string of the current board
   std::string InformationStateString(Player player) const override;
 
-   // The InformationState and Observationtensors return the current State in form of
+  std::string ObservationString(Player player) const override {
+    return InformationStateString(player);
+  }
+
+  // The InformationState and Observationtensors return the current State in
+  // form of
   // planes
   void InformationStateTensor(Player player,
                               absl::Span<float> values) const override;
+  void ObservationTensor(Player player,
+                         absl::Span<float> values) const override {
+    InformationStateTensor(player, values);
+  }
 
   // A method to clone the current state
   std::unique_ptr<State> Clone() const override;
@@ -169,9 +179,7 @@ class YorktownState : public State {
   std::vector<Move>& MovesHistory() { return moves_history_; }
   const std::vector<Move>& MovesHistory() const { return moves_history_; }
 
-  void
-  DebugString();
-
+  void DebugString();
 
   // The current ply number
   int MoveNumber() const { return Board().Movenumber(); }
@@ -181,7 +189,6 @@ class YorktownState : public State {
   void DoApplyAction(Action action_id) override;
 
  private:
-
   // Calculates legal actions and caches them. This is separate from
   // LegalActions() as there are a number of other methods that need the value
   // of LegalActions. This is a separate method as it's called from
@@ -210,9 +217,12 @@ class YorktownGame : public Game {
   explicit YorktownGame(const GameParameters& params);
 
   // see above (36 possible moves)
-  int NumDistinctActions() const override {return yorktown::kNumDistinctActions;}
+  int NumDistinctActions() const override {
+    return yorktown::kNumDistinctActions;
+  }
 
-  // pointer to the initial state with a given position in form of an strados string
+  // pointer to the initial state with a given position in form of an strados
+  // string
   std::unique_ptr<State> NewInitialState(
       const std::string& strados3) const override {
     return absl::make_unique<YorktownState>(shared_from_this(), strados3);
@@ -233,10 +243,11 @@ class YorktownGame : public Game {
     return yorktown::InformationStateTensorShape();
   }
 
-
+  std::vector<int> ObservationTensorShape() const override {
+    return yorktown::InformationStateTensorShape();
+  }
 
   int MaxGameLength() const override;
-
 };
 
 }  // namespace yorktown

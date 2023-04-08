@@ -170,7 +170,6 @@ class PPO(nn.Module):
       input_shape,
       num_actions,
       num_players,
-      player_id=0,
       num_envs=1,
       steps_per_batch=128,
       num_minibatches=4,
@@ -195,7 +194,6 @@ class PPO(nn.Module):
     self.input_shape = (np.array(input_shape).prod(),)
     self.num_actions = num_actions
     self.num_players = num_players
-    self.player_id = player_id
     self.device = device
 
     # Training settings
@@ -239,6 +237,7 @@ class PPO(nn.Module):
     self.rewards = torch.zeros((self.steps_per_batch, self.num_envs)).to(device)
     self.dones = torch.zeros((self.steps_per_batch, self.num_envs)).to(device)
     self.values = torch.zeros((self.steps_per_batch, self.num_envs)).to(device)
+    self.current_players = torch.zeros((self.steps_per_batch, self.num_envs)).to(device)
 
     # Initialize counters
     self.cur_batch_idx = 0
@@ -256,11 +255,11 @@ class PPO(nn.Module):
     if is_evaluation:
       with torch.no_grad():
         legal_actions_mask = legal_actions_to_mask([
-            ts.observations["legal_actions"][self.player_id] for ts in time_step
+            ts.observations["legal_actions"][ts.current_player()] for ts in time_step
         ], self.num_actions).to(self.device)
         obs = torch.Tensor(
             np.array([
-                np.reshape(ts.observations["info_state"][self.player_id],
+                np.reshape(ts.observations["info_state"][ts.current_player()],
                            self.input_shape) for ts in time_step
             ])).to(self.device)
         action, _, _, value, probs = self.get_action_and_value(
@@ -274,12 +273,14 @@ class PPO(nn.Module):
         # act
         obs = torch.Tensor(
             np.array([
-                np.reshape(ts.observations["info_state"][self.player_id],
+                np.reshape(ts.observations["info_state"][ts.current_player()],
                            self.input_shape) for ts in time_step
             ])).to(self.device)
         legal_actions_mask = legal_actions_to_mask([
-            ts.observations["legal_actions"][self.player_id] for ts in time_step
+            ts.observations["legal_actions"][ts.current_player()] for ts in time_step
         ], self.num_actions).to(self.device)
+        current_players = torch.Tensor([ts.current_player() for ts in time_step]).to(self.device)
+
         action, logprob, _, value, probs = self.get_action_and_value(
             obs, legal_actions_mask=legal_actions_mask)
 
@@ -289,6 +290,7 @@ class PPO(nn.Module):
         self.actions[self.cur_batch_idx] = action
         self.logprobs[self.cur_batch_idx] = logprob
         self.values[self.cur_batch_idx] = value.flatten()
+        self.current_players[self.cur_batch_idx] = current_players
 
         agent_output = [
             StepOutput(action=a.item(), probs=p)
@@ -307,7 +309,7 @@ class PPO(nn.Module):
   def learn(self, time_step):
     next_obs = torch.Tensor(
         np.array([
-            np.reshape(ts.observations["info_state"][self.player_id],
+            np.reshape(ts.observations["info_state"][ts.current_player()],
                        self.input_shape) for ts in time_step
         ])).to(self.device)
 
@@ -345,6 +347,8 @@ class PPO(nn.Module):
     b_advantages = advantages.reshape(-1)
     b_returns = returns.reshape(-1)
     b_values = self.values.reshape(-1)
+    b_playersigns = -2. * self.current_players.reshape(-1) + 1.
+    b_advantages *= b_playersigns
 
     # Optimizing the policy and value network
     b_inds = np.arange(self.batch_size)
