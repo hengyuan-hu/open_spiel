@@ -261,6 +261,8 @@ def main(_):
 
   writer.close()
 
+  agent.save("/tmp/actor.pth")
+
 
 if __name__ == "__main__":
   app.run(main)

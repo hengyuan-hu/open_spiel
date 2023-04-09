@@ -60,18 +60,22 @@ class PPOAgent(nn.Module):
   def __init__(self, num_actions, observation_shape, device):
     super().__init__()
     self.critic = nn.Sequential(
-        layer_init(nn.Linear(np.array(observation_shape).prod(), 64)),
+        layer_init(nn.Linear(np.array(observation_shape).prod(), 512)),
         nn.Tanh(),
-        layer_init(nn.Linear(64, 64)),
+        layer_init(nn.Linear(512, 512)),
         nn.Tanh(),
-        layer_init(nn.Linear(64, 1), std=1.0),
+        layer_init(nn.Linear(512, 512)),
+        nn.Tanh(),
+        layer_init(nn.Linear(512, 1), std=1.0),
     )
     self.actor = nn.Sequential(
-        layer_init(nn.Linear(np.array(observation_shape).prod(), 64)),
+        layer_init(nn.Linear(np.array(observation_shape).prod(), 512)),
         nn.Tanh(),
-        layer_init(nn.Linear(64, 64)),
+        layer_init(nn.Linear(512, 512)),
         nn.Tanh(),
-        layer_init(nn.Linear(64, num_actions), std=0.01),
+        layer_init(nn.Linear(512, 512)),
+        nn.Tanh(),
+        layer_init(nn.Linear(512, num_actions), std=0.01),
     )
     self.device = device
     self.num_actions = num_actions
@@ -444,6 +448,10 @@ class PPO(nn.Module):
     # Update counters
     self.updates_done += 1
     self.cur_batch_idx = 0
+
+  def save(self, path):
+    """Saves the actor weights to path"""
+    torch.save(self.network.actor.state_dict(), path)
 
   def anneal_learning_rate(self, update, num_total_updates):
     # Annealing the rate
