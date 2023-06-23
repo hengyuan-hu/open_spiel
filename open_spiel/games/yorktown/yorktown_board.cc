@@ -244,29 +244,36 @@ namespace open_spiel
     // Method within the piece construct, this time for strados notation
     std::string Piece::ToStraDosString(Color c) const
     {
+      std::string s;
       if (type == PieceType::kLake)
-        return PieceTypeToStradosString(type, Color::kBlue);
+        s = PieceTypeToStradosString(type, Color::kBlue);
       if (c == Color::kEmpty)
       {
         if (color == Color::kBlue)
-          return isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kBlue)) : PieceTypeToStradosString(type, Color::kBlue);
+          s = isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kBlue)) : PieceTypeToStradosString(type, Color::kBlue);
         else
-          return isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kRed)) : PieceTypeToStradosString(type, Color::kRed);
+          s = isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kRed)) : PieceTypeToStradosString(type, Color::kRed);
       }
       else if (c == Color::kBlue)
       {
         if (color == Color::kBlue)
-          return isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kBlue)) : PieceTypeToStradosString(type, Color::kBlue);
+          s = isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kBlue)) : PieceTypeToStradosString(type, Color::kBlue);
         else
-          return isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kRed)) : "?";
+          s = isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kRed)) : "?";
       }
       else if (c == Color::kRed)
       {
         if (color == Color::kBlue)
-          return isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kBlue)) : "?";
+          s = isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kBlue)) : "?";
         else
-          return isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kRed)) : PieceTypeToStradosString(type, Color::kRed);
+          s = isVisible ? absl::AsciiStrToLower(PieceTypeToStradosString(type, Color::kRed)) : PieceTypeToStradosString(type, Color::kRed);
       }
+      if (hasMoved)
+        s += '.';
+      else
+        s += '@';
+
+      return s;
     }
 
     // Returns a square given its file and rank (a7 -> Square Nr. 6)
