@@ -85,6 +85,7 @@ void AddProbabilityPieceTypePlane(Color color, Player player, PieceType piece_ty
                        absl::Span<float>::iterator& value_it) {
   
   double countInvisible = 0;
+  double countMovableInvisible = 0;
   double countMovedInvisible = 0;
   for (int8_t y = 0; y < BoardSize(); ++y) {
     for (int8_t x = 0; x < BoardSize(); ++x) {
@@ -92,6 +93,9 @@ void AddProbabilityPieceTypePlane(Color color, Player player, PieceType piece_ty
       if(piece_on_board.color == color){
         if(piece_on_board.isVisible == false){
            countInvisible++;
+           if(piece_on_board.type != PieceType::kFlag && piece_on_board.type != PieceType::kBomb){
+              countMovableInvisible++;
+           }
            if(piece_on_board.hasMoved == true){
              countMovedInvisible++;
            }
@@ -99,6 +103,10 @@ void AddProbabilityPieceTypePlane(Color color, Player player, PieceType piece_ty
       }
     }
   }
+  double countNotMovableInvisible = countInvisible - countMovableInvisible;
+  double countNotMovedInvisbible = countInvisible - countMovedInvisible;
+  double countMovableNotMovedInvisible = countMovableInvisible - countMovedInvisible;
+  float pMovableGivenNotMovedInvisible = 1 - countNotMovableInvisible / ((float) countNotMovedInvisbible);
   
   
   for (int8_t y = 0; y < BoardSize(); ++y) {
@@ -112,33 +120,40 @@ void AddProbabilityPieceTypePlane(Color color, Player player, PieceType piece_ty
           else *value_it++ = 0.0;
         }else *value_it++ = 0.0;
       }else{
-          if(piece_type == PieceType::kFlag || piece_type == PieceType::kBomb){
-              if(piece_on_board.hasMoved == true) *value_it++ = 0.0;
-              else{
-                for(int i = 0; i < 12; ++i){
-                  if(piece_type == kPieceTypes[i] && color == Color::kRed){
-                    *value_it++ = ((float) board.LivingPieces()[i]-board.find(Piece{color, piece_type, true}).size())/((float) countInvisible-countMovedInvisible);
-                  }
-                  if(piece_type == kPieceTypes[i] && color == Color::kBlue){
-                    *value_it++ = ((float) board.LivingPieces()[i+12]-board.find(Piece{color, piece_type, true}).size())/((float) countInvisible-countMovedInvisible);
-                  }
-                }
-              }
-              // For the flag and bomb its 1/unmoved invisible pieces instead of 1/all invisible pieces
-          }else{
-             for(int i = 0; i < 12; ++i){
+          if(piece_on_board.hasMoved == true){
+            for(int i = 0; i < 12; ++i){
+              if(piece_type != PieceType::kFlag && piece_type != PieceType::kBomb){
                 if(piece_type == kPieceTypes[i] && color == Color::kRed){
-                  *value_it++ = ((float) board.LivingPieces()[i]-board.find(Piece{color, piece_type, true}).size())/((float) countInvisible);
+                  *value_it++ = ((float) board.LivingPieces()[i]-board.find(Piece{color, piece_type, true}).size())/((float) countMovableInvisible);
                 }
                 if(piece_type == kPieceTypes[i] && color == Color::kBlue){
-                  *value_it++ = ((float) board.LivingPieces()[i+12]-board.find(Piece{color, piece_type, true}).size())/((float) countInvisible);
+                  *value_it++ = ((float) board.LivingPieces()[i+12]-board.find(Piece{color, piece_type, true}).size())/((float) countMovableInvisible);
                 }
               }
             }
-          }  
+          }else{
+            for(int i = 0; i < 12; ++i){
+              if(piece_type == PieceType::kFlag || piece_type == PieceType::kBomb){
+                if(piece_type == kPieceTypes[i] && color == Color::kRed){
+                  *value_it++ = ((float) board.LivingPieces()[i]-board.find(Piece{color, piece_type, true}).size())/((float) countNotMovedInvisbible);
+                }
+                if(piece_type == kPieceTypes[i] && color == Color::kBlue){
+                  *value_it++ = ((float) board.LivingPieces()[i+12]-board.find(Piece{color, piece_type, true}).size())/((float) countNotMovedInvisbible);
+                }
+              }else{
+                if(piece_type == kPieceTypes[i] && color == Color::kRed){
+                  *value_it++ = ((float) board.LivingPieces()[i]-board.find(Piece{color, piece_type, true}).size())*(pMovableGivenNotMovedInvisible)/((float) countMovableNotMovedInvisible);
+                }
+                if(piece_type == kPieceTypes[i] && color == Color::kBlue){
+                  *value_it++ = ((float) board.LivingPieces()[i+12]-board.find(Piece{color, piece_type, true}).size())*(pMovableGivenNotMovedInvisible)/((float) countMovableNotMovedInvisible);
+                }   
+              } 
+            }
+          }
         }
       }
     }
+  }
 
 
 // Adds a plan representing all pieces of a color/player which are still hidden
