@@ -108,7 +108,6 @@ void AddProbabilityPieceTypePlane(Color color, Player player, PieceType piece_ty
   double countMovableNotMovedInvisible = countMovableInvisible - countMovedInvisible;
   float pMovableGivenNotMovedInvisible = 1 - countNotMovableInvisible / ((float) countNotMovedInvisbible);
   
-  
   for (int8_t y = 0; y < BoardSize(); ++y) {
     for (int8_t x = 0; x < BoardSize(); ++x) {
       Piece piece_on_board = board.at(Square{x, y});
