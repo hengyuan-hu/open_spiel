@@ -326,6 +326,8 @@ namespace open_spiel
       Move player_move(move);
 
       // Rotate move to be from player p's perspective.
+      player_move.from.x = ReflectRank(color, BoardSize(), player_move.from.x);
+      player_move.to.x = ReflectRank(color, BoardSize(), player_move.to.x);
       player_move.from.y = ReflectRank(color, BoardSize(), player_move.from.y);
       player_move.to.y = ReflectRank(color, BoardSize(), player_move.to.y);
 
@@ -388,6 +390,8 @@ namespace open_spiel
 
       Square to_square = from_square + offset;
 
+      from_square.x = ReflectRank(color, BoardSize(), from_square.x);
+      to_square.x = ReflectRank(color, BoardSize(), to_square.x);
       from_square.y = ReflectRank(color, BoardSize(), from_square.y);
       to_square.y = ReflectRank(color, BoardSize(), to_square.y);
 
